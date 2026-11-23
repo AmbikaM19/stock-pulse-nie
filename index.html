@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>StockPulse | Smart Lab Inventory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1220; --panel: #111c2d; --panel-2: #152236; --line: #24344a;
+      --text: #e8eef7; --muted: #8fa1b8; --teal: #31d0bd; --teal-dark: #0e9f91;
+      --green: #55d6a2; --amber: #f5b84b; --red: #fb7185; --blue: #78a9ff;
+      --shadow: 0 18px 50px rgba(0,0,0,.22);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--text); background: radial-gradient(ellipse at 10% 0%, #152b40 0, transparent 38%), var(--bg); font-family: "DM Sans", sans-serif; min-height: 100vh; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: 100vh; }
+    .sidebar { padding: 26px 16px; background: rgba(10,17,29,.82); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 30px; }
+    .brand { display:flex; align-items:center; gap:12px; padding: 0 10px; }
+    .brand-mark { width:42px; height:42px; border-radius:14px; display:grid; place-items:center; color:#061a1b; font-size:22px; font-weight:800; background:linear-gradient(135deg,#54e2cf,#20a99c); box-shadow:0 8px 25px #1bb9a52e; }
+    .brand-name { font:800 18px "Manrope",sans-serif; letter-spacing:-.5px; }
+    .brand-sub { color:var(--muted); font-size:11px; margin-top:3px; }
+    .nav-label { color:#61738a; font-size:10px; letter-spacing:1.6px; font-weight:700; padding:0 12px; margin-bottom:10px; }
+    .nav { display:grid; gap:6px; }
+    .nav a { color:#91a2b7; text-decoration:none; padding:12px; border-radius:12px; display:flex; align-items:center; gap:12px; font-size:13px; font-weight:600; transition:.2s; }
+    .nav a:hover, .nav a.active { color:#eafffb; background:linear-gradient(90deg,#1b3b47,#172b3a); }
+    .nav a.active { box-shadow:inset 3px 0 var(--teal); }
+    .nav-icon { width:20px; text-align:center; font-size:16px; }
+    .side-bottom { margin-top:auto; padding:15px; border:1px solid var(--line); border-radius:16px; background:linear-gradient(145deg,#142438,#101a2a); }
+    .side-bottom .tiny { color:var(--muted); font-size:11px; }
+    .side-bottom strong { display:block; font-size:13px; margin:8px 0 12px; }
+    .side-bottom .progress { height:5px; background:#26384c; border-radius:9px; overflow:hidden; }
+    .side-bottom .progress span { display:block; width:68%; height:100%; background:linear-gradient(90deg,var(--teal),var(--green)); border-radius:9px; }
+    .main { min-width:0; padding:28px clamp(16px,3vw,38px) 38px; max-width:1600px; width:100%; margin:0 auto; }
+    #inventory, #alerts, #activity { scroll-margin-top: 24px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:28px; }
+    .eyebrow { color:var(--teal); font-size:11px; letter-spacing:1.8px; font-weight:700; text-transform:uppercase; margin-bottom:8px; }
+    h1 { font:800 clamp(23px,3vw,32px) "Manrope",sans-serif; letter-spacing:-1px; margin:0; }
+    .subtitle { color:var(--muted); font-size:13px; margin-top:8px; }
+    .top-actions { display:flex; gap:10px; align-items:center; }
+    .date-chip { border:1px solid var(--line); background:#111c2d; color:#a9b8ca; padding:10px 13px; border-radius:11px; font-size:12px; white-space:nowrap; }
+    .btn { border:1px solid var(--line); color:#dce7f3; background:#152236; padding:10px 14px; border-radius:11px; font-size:12px; font-weight:700; transition:.2s; }
+    .btn:hover { transform:translateY(-1px); border-color:#49647e; }
+    .btn-primary { border:0; color:#06201e; background:linear-gradient(135deg,#54e2cf,#29b8a9); box-shadow:0 8px 22px #20b7a322; }
+    .btn-primary:hover { filter:brightness(1.06); }
+    .btn-small { padding:7px 10px; font-size:11px; }
+    .alert { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:15px 18px; margin-bottom:20px; border:1px solid #805e2a; border-radius:15px; background:linear-gradient(100deg,#332719,#241e19); }
+    .alert-left { display:flex; gap:12px; align-items:center; }
+    .alert-symbol { display:grid; place-items:center; width:38px;height:38px; border-radius:12px; background:#f5b84b1c; color:var(--amber); font-size:19px; }
+    .alert strong { display:block; font-size:13px; color:#ffd98d; }
+    .alert p { color:#c4a979; font-size:11px; margin:5px 0 0; }
+    .alert .btn { background:#f5b84b; color:#251a08; border:0; }
+    .stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:15px; margin-bottom:22px; }
+    .stat { padding:19px; border:1px solid var(--line); background:linear-gradient(145deg,#142236,#101a29); border-radius:16px; box-shadow:var(--shadow); position:relative; overflow:hidden; }
+    .stat:after { content:""; position:absolute; right:-22px; top:-25px; width:90px;height:90px;border-radius:50%; background:var(--glow,#31d0bd); opacity:.07; }
+    .stat-head { display:flex; justify-content:space-between; align-items:center; gap:8px; color:#9aabc0; font-size:11px; font-weight:600; }
+    .stat-icon { width:32px;height:32px; display:grid;place-items:center;border-radius:10px;background:#203449;color:var(--accent,var(--teal));font-size:16px; }
+    .stat-value { font:800 29px "Manrope",sans-serif; letter-spacing:-1px; margin:14px 0 5px; }
+    .stat-foot { color:#7e91a8; font-size:11px; }
+    .stat-foot .good { color:var(--green); } .stat-foot .warn { color:var(--amber); }
+    .content-grid { display:grid; grid-template-columns:minmax(0,1.75fr) minmax(280px,1fr); gap:18px; align-items:start; }
+    .panel { background:linear-gradient(145deg,#131f31,#101a29); border:1px solid var(--line); border-radius:17px; overflow:hidden; box-shadow:var(--shadow); }
+    .panel-head { padding:19px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid #223247; }
+    .panel-title { font:700 15px "Manrope",sans-serif; }
+    .panel-desc { color:var(--muted); font-size:11px; margin-top:5px; }
+    .live-pill { color:var(--green); background:#1b3a35; border:1px solid #2b5d50; border-radius:20px; padding:5px 9px; font-size:10px; font-weight:700; white-space:nowrap; }
+    .table-controls { display:flex; flex-wrap:wrap; gap:10px; padding:15px 20px; }
+    .search { flex:1; min-width:160px; position:relative; }
+    .search span { position:absolute; left:12px; top:10px; color:#70849c; }
+    .search input { width:100%; padding:10px 12px 10px 34px; background:#0b1421; border:1px solid #2a3b50; border-radius:10px; outline:none; color:var(--text); font-size:12px; }
+    .search input:focus { border-color:var(--teal); box-shadow:0 0 0 3px #31d0bd18; }
+    .filter-group { display:flex; gap:4px; padding:4px; background:#0b1421; border:1px solid #26364a; border-radius:10px; }
+    .filter-btn { border:0; border-radius:7px; background:transparent; color:#8294aa; padding:7px 10px; font-size:11px; font-weight:700; }
+    .filter-btn.selected { color:#dffcf8; background:#1d3a45; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; min-width:610px; text-align:left; }
+    thead { background:#101a29; }
+    th { padding:12px 18px; color:#74879e; font-size:10px; letter-spacing:1px; text-transform:uppercase; font-weight:700; }
+    td { padding:14px 18px; border-top:1px solid #1f2e41; font-size:12px; color:#cbd6e4; }
+    tbody tr { transition:background .18s; } tbody tr:hover { background:#1b2b3c; }
+    .item-name { font-weight:700; color:#e5edf6; font-size:12px; }
+    .item-bin { color:#73869e; font-size:10px; margin-top:5px; }
+    .qty { font:700 14px "Manrope",sans-serif; color:#e6eff8; }
+    .qty small { color:#7588a0; font:500 10px "DM Sans",sans-serif; }
+    .status { display:inline-flex; align-items:center; gap:6px; padding:5px 8px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+    .status:before { content:""; width:5px;height:5px;border-radius:50%;background:currentColor; }
+    .status.ok { color:#62d8a7; background:#1b3a33; }
+    .status.low { color:#f5bd58; background:#3b3020; }
+    .status.out { color:#ff8797; background:#402530; }
+    .actions { display:flex; justify-content:flex-end; gap:6px; }
+    .icon-btn { width:27px;height:27px;border:1px solid #304258;border-radius:8px;background:#172539;color:#b7c7d9;font-weight:700; }
+    .icon-btn:hover { border-color:var(--teal); color:var(--teal); }
+    .icon-btn:disabled { opacity:.35; cursor:not-allowed; }
+    .empty { padding:35px 20px; text-align:center; color:#8496ac; font-size:12px; }
+    .activity-panel { min-height:100%; }
+    .activity-list { padding:14px; display:grid; gap:9px; max-height:460px; overflow:auto; }
+    .activity { display:flex; gap:11px; padding:12px; border:1px solid #243449; background:#0d1725; border-radius:12px; }
+    .activity-icon { width:30px;height:30px; flex:0 0 30px; display:grid;place-items:center;border-radius:10px;background:#1c3042;color:var(--teal); }
+    .activity-text { color:#c8d5e4; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+    .activity-time { color:#71859c; font-size:10px; margin-top:5px; }
+    .activity-tag { margin-left:auto; font-size:10px; font-weight:700; white-space:nowrap; }
+    .activity-tag.minus { color:var(--red); } .activity-tag.plus { color:var(--green); }
+    .bottom-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px; }
+    .mini-panel { padding:19px 20px; }
+    .mini-title { font:700 14px "Manrope",sans-serif; }
+    .mini-sub { color:var(--muted); font-size:11px; margin-top:5px; }
+    .stock-bars { display:grid; gap:13px; margin-top:20px; }
+    .bar-row { display:grid; grid-template-columns:100px 1fr 35px; gap:10px; align-items:center; font-size:11px; color:#9aabc0; }
+    .bar-track { height:7px; border-radius:8px; background:#26364a; overflow:hidden; }
+    .bar-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#239f99,#50d9c4); }
+    .bar-count { text-align:right; color:#dbe6f1; font-weight:700; }
+    .footer { display:flex; justify-content:space-between; gap:12px; color:#60748c; font-size:10px; padding:22px 4px 0; }
+    .modal-backdrop { position:fixed; inset:0; z-index:20; display:grid; place-items:center; padding:18px; background:#020711bd; backdrop-filter:blur(8px); }
+    .modal-backdrop.hidden { display:none; }
+    .modal { width:min(100%,480px); padding:24px; background:#131f31; border:1px solid #30435a; border-radius:20px; box-shadow:0 30px 90px #0008; }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .modal-head h2 { margin:0; font:800 18px "Manrope",sans-serif; }
+    .close { border:0; background:transparent; color:#9aabc0; font-size:22px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .field { display:grid; gap:7px; } .field.full { grid-column:1/-1; }
+    .field label { color:#91a3b9; font-size:11px; font-weight:600; }
+    .field input { width:100%; border:1px solid #2c4056; background:#0b1421; color:var(--text); border-radius:10px; padding:11px 12px; outline:none; font-size:12px; }
+    .field input:focus { border-color:var(--teal); }
+    .form-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:20px; }
+    .toast { position:fixed; z-index:30; right:20px; bottom:20px; display:flex; align-items:center; gap:15px; padding:13px 16px; background:#172638; border:1px solid #3b526a; border-radius:13px; box-shadow:var(--shadow); font-size:12px; max-width:calc(100vw - 40px); animation:toastIn .22s ease-out; }
+    .toast.hidden { display:none; } .toast button { border:0;background:none;color:var(--teal);font-weight:800; }
+    @keyframes toastIn { from { transform:translateY(12px);opacity:0; } to { transform:translateY(0);opacity:1; } }
+    @media (max-width:1100px) { .app { grid-template-columns:76px minmax(0,1fr); } .sidebar { padding:22px 10px; } .brand { justify-content:center;padding:0; } .brand-copy,.nav-label,.nav-text,.side-bottom { display:none; } .nav a { justify-content:center;padding:13px 8px; } .nav-icon { font-size:19px; } .stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .content-grid { grid-template-columns:1fr; } .activity-list { max-height:300px; } }
+    @media (max-width:680px) { .app { display:block; } .sidebar { display:none; } .main { padding:20px 13px 28px; } .topbar { align-items:flex-start; flex-direction:column; margin-bottom:20px; } .top-actions { width:100%; flex-wrap:wrap; } .date-chip { display:none; } .stats { gap:10px; } .stat { padding:15px; } .stat-value { font-size:25px; } .content-grid,.bottom-grid { grid-template-columns:1fr; gap:13px; } .alert { align-items:flex-start; flex-direction:column; } .panel-head { padding:16px; } .table-controls { padding:12px 14px; } th,td { padding:12px; } .footer { flex-direction:column; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }
+
+    /* Colorful, clearer dashboard refresh */
+    :root { --teal:#55e6d2; --green:#75e6b5; --amber:#ffd166; --red:#ff7b91; --blue:#8cb8ff; }
+    body { background: radial-gradient(ellipse at 5% 0%, #263f70 0, transparent 34%), radial-gradient(ellipse at 92% 12%, #4a245b 0, transparent 28%), #0b1220; }
+    .brand-mark { background:linear-gradient(135deg,#72f2df,#5da7ff 55%,#b68cff); color:#071626; }
+    .nav a:hover,.nav a.active { background:linear-gradient(100deg,#234b64,#30294e); }
+    .nav a.active { box-shadow:inset 3px 0 #75f0dc; }
+    .btn-primary { background:linear-gradient(120deg,#6ef0d9,#82b7ff); color:#092033; }
+    .stat:nth-child(1) { background:linear-gradient(145deg,#172e4c,#122236); border-color:#31527c; }
+    .stat:nth-child(2) { background:linear-gradient(145deg,#3c2c21,#211c20); border-color:#745331; }
+    .stat:nth-child(3) { background:linear-gradient(145deg,#173b35,#13252c); border-color:#2c6655; }
+    .stat:nth-child(4) { background:linear-gradient(145deg,#30264b,#1b2038); border-color:#55417e; }
+    .stat-icon { background:#ffffff12; }
+    .panel { background:linear-gradient(145deg,#17263b,#111c2d); }
+    .panel-head { background:linear-gradient(90deg,#1a2e46,#1d263c); }
+    .live-pill { color:#8af4cb; background:#1b463d; border-color:#367c69; }
+    .filter-btn.selected { color:#fff; background:linear-gradient(120deg,#246d77,#55458b); }
+    .icon-btn { background:#20364e; border-color:#3b5a78; }
+    .bar-fill { background:linear-gradient(90deg,#55e6d2,#73aaff,#b68cff); }
+    .view-records-btn { margin-left:8px; border:1px solid #536b91; background:linear-gradient(120deg,#263d61,#46335e); color:#e9e8ff; }
+    .view-records-btn:hover { border-color:#9e9cff; }
+    .records-backdrop { position:fixed; inset:0; z-index:25; display:grid; place-items:center; padding:18px; background:#020711c9; backdrop-filter:blur(8px); }
+    .records-backdrop.hidden { display:none; }
+    .records-modal { width:min(100%,900px); max-height:min(86vh,760px); display:flex; flex-direction:column; background:#142238; border:1px solid #52678b; border-radius:20px; box-shadow:0 30px 90px #0009; overflow:hidden; }
+    .records-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:20px 24px; background:linear-gradient(100deg,#244765,#43335f); }
+    .records-head h2 { margin:0; font:800 19px "Manrope",sans-serif; }
+    .records-head p { margin:6px 0 0; color:#d1d9f4; font-size:12px; }
+    .records-close { border:0; border-radius:10px; width:36px;height:36px; background:#ffffff1c; color:white; font-size:22px; }
+    .records-toolbar { display:flex; gap:10px; align-items:center; padding:15px 20px; }
+    .records-toolbar input { flex:1; min-width:0; padding:11px 13px; border:1px solid #344b68; border-radius:10px; background:#0b1421; color:var(--text); }
+    .records-table-wrap { overflow:auto; }
+    .records-table { width:100%; min-width:560px; border-collapse:collapse; }
+    .records-table th { position:sticky; top:0; background:#1a2a41; }
+    .records-table td { border-top:1px solid #293c55; }
+    .record-badge { display:inline-block; border-radius:20px; padding:4px 8px; font-size:10px; font-weight:700; background:#293b57; color:#c5d6ff; }
+    .records-empty { padding:28px; text-align:center; color:#9baec7; }
+    @media(max-width:600px) { .records-head { padding:16px; } .records-toolbar { padding:12px; } }
+
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">↗</div>
+      <div class="brand-copy"><div class="brand-name">StockPulse</div><div class="brand-sub">SMART LAB INVENTORY</div></div>
+    </div>
+    <div>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="nav">
+        <a class="active" href="#overview"><span class="nav-icon">▦</span><span class="nav-text">Overview</span></a>
+        <a href="#inventory"><span class="nav-icon">▤</span><span class="nav-text">Inventory</span></a>
+        <a href="#alerts" onclick="setFilter('low')"><span class="nav-icon">⚠</span><span class="nav-text">Stock Alerts</span></a>
+        <a href="#activity"><span class="nav-icon">◷</span><span class="nav-text">Activity Log</span></a>
+      </nav>
+    </div>
+    <div class="side-bottom">
+      <div class="tiny">INVENTORY HEALTH</div>
+      <strong id="healthLabel">Monitoring stock levels</strong>
+      <div class="progress"><span id="healthBar"></span></div>
+    </div>
+  </aside>
+
+  <main class="main" id="overview">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">LAB OPERATIONS / INVENTORY</div>
+        <h1>Inventory overview</h1>
+        <div class="subtitle">Keep every component accounted for. Stay ready to build.</div>
+      </div>
+      <div class="top-actions">
+        <div class="date-chip" id="todayLabel">📅 Today</div>
+        <button class="btn" onclick="resetDemoData()">↻ Reset demo</button>
+        <button class="btn btn-primary" onclick="toggleModal(true)">＋ Add component</button>
+      </div>
+    </header>
+
+    <section id="alerts">
+      <div class="alert" id="alertBanner">
+        <div class="alert-left">
+          <div class="alert-symbol">⚠</div>
+          <div><strong id="alertTitle">Stock needs attention</strong><p id="alertSubtitle">Some components are below their reorder threshold.</p></div>
+        </div>
+        <button class="btn" onclick="setFilter('low')">View reorder list ↗</button>
+      </div>
+    </section>
+
+    <section class="stats" aria-label="Inventory summary">
+      <article class="stat" style="--accent:#78a9ff;--glow:#78a9ff">
+        <div class="stat-head"><span>TOTAL COMPONENTS</span><span class="stat-icon">▦</span></div>
+        <div class="stat-value" id="statTotal">0</div><div class="stat-foot">Unique items tracked</div>
+      </article>
+      <article class="stat" style="--accent:#f5b84b;--glow:#f5b84b">
+        <div class="stat-head"><span>LOW / OUT OF STOCK</span><span class="stat-icon">⚠</span></div>
+        <div class="stat-value" id="statLow">0</div><div class="stat-foot"><span class="warn">Needs replenishment</span></div>
+      </article>
+      <article class="stat" style="--accent:#55d6a2;--glow:#55d6a2">
+        <div class="stat-head"><span>ACTIVITY EVENTS</span><span class="stat-icon">↗</span></div>
+        <div class="stat-value" id="statLogs">0</div><div class="stat-foot">Recorded inventory actions</div>
+      </article>
+      <article class="stat" style="--accent:#31d0bd;--glow:#31d0bd">
+        <div class="stat-head"><span>STOCK AVAILABILITY</span><span class="stat-icon">◉</span></div>
+        <div class="stat-value" id="statHealth">0%</div><div class="stat-foot"><span class="good">Items above minimum level</span></div>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel" id="inventory">
+        <div class="panel-head">
+          <div><div class="panel-title">Component inventory</div><div class="panel-desc">Monitor quantities and record stock movement</div></div>
+          <span class="live-pill">● LIVE VIEW</span>
+        </div>
+        <div class="table-controls">
+          <div class="search"><span>⌕</span><input id="searchInput" type="search" placeholder="Search item or storage bin…" oninput="render()"></div>
+          <div class="filter-group">
+            <button id="btnAll" class="filter-btn selected" onclick="setFilter('all')">All</button>
+            <button id="btnLow" class="filter-btn" onclick="setFilter('low')">Needs restock</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component / location</th><th>Quantity</th><th>Status</th><th style="text-align:right">Quick update</th></tr></thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside class="panel activity-panel" id="activity">
+        <div class="panel-head">
+          <div><div class="panel-title">Recent activity</div><div class="panel-desc">Latest usage and restock events</div></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="live-pill">● TRACKING</span><button class="btn btn-small view-records-btn" type="button" onclick="openRecordList()">View record list ↗</button></div>
+        </div>
+        <div class="activity-list" id="activityFeed"></div>
+      </aside>
+    </section>
+
+    <section class="bottom-grid">
+      <div class="panel mini-panel">
+        <div class="mini-title">Stock level snapshot</div><div class="mini-sub">Current quantity compared with alert threshold</div>
+        <div class="stock-bars" id="stockBars"></div>
+      </div>
+      <div class="panel mini-panel">
+        <div class="mini-title">Restock priorities</div><div class="mini-sub">Components that need attention first</div>
+        <div class="stock-bars" id="priorityList"></div>
+      </div>
+    </section>
+
+    <footer class="footer"><span>StockPulse · Smart Lab Inventory Management</span><span>Demo dashboard · Changes saved in this browser</span></footer>
+  </main>
+</div>
+
+<div class="modal-backdrop hidden" id="addModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="if(event.target===this)toggleModal(false)">
+  <div class="modal">
+    <div class="modal-head"><h2 id="modalTitle">Add lab component</h2><button class="close" aria-label="Close" onclick="toggleModal(false)">×</button></div>
+    <form id="addForm" onsubmit="addNewItem(event)">
+      <div class="form-grid">
+        <div class="field full"><label for="newName">Component name</label><input id="newName" required maxlength="100" placeholder="e.g. 10kΩ resistors"></div>
+        <div class="field"><label for="newBin">Storage location</label><input id="newBin" required maxlength="60" placeholder="Drawer B4"></div>
+        <div class="field"><label for="newUnit">Unit</label><input id="newUnit" required maxlength="20" value="pcs" placeholder="pcs / rolls"></div>
+        <div class="field"><label for="newQty">Initial quantity</label><input id="newQty" type="number" min="0" step="1" required value="50"></div>
+        <div class="field"><label for="newMin">Alert threshold</label><input id="newMin" type="number" min="1" step="1" required value="15"></div>
+      </div>
+      <div class="form-actions"><button type="button" class="btn" onclick="toggleModal(false)">Cancel</button><button type="submit" class="btn btn-primary">Save component</button></div>
+    </form>
+  </div>
+</div>
+
+
+<div class="records-backdrop hidden" id="recordsModal" role="dialog" aria-modal="true" aria-labelledby="recordsTitle" onclick="if(event.target===this)closeRecordList()">
+  <section class="records-modal">
+    <header class="records-head"><div><h2 id="recordsTitle">Inventory record list</h2><p>All saved stock movements and inventory changes in this browser.</p></div><button class="records-close" type="button" aria-label="Close record list" onclick="closeRecordList()">×</button></header>
+    <div class="records-toolbar"><input id="recordSearch" type="search" placeholder="Search records by component or action…" oninput="renderRecordList()"><span class="live-pill" id="recordCount">0 RECORDS</span></div>
+    <div class="records-table-wrap"><table class="records-table"><thead><tr><th>Action / component</th><th>Time</th><th>Change</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+  </section>
+</div>
+
+<div class="toast hidden" id="toast"><span id="toastMsg">Stock updated</span><button onclick="undoLastAction()">UNDO</button></div>
+
+<script>
+  const DEFAULT_ITEMS = [
+    { id: 1, name: "10kΩ Carbon Film Resistors", bin: "Drawer A1", qty: 14, min: 25, unit: "pcs" },
+    { id: 2, name: "5mm Red Diffused LEDs", bin: "Drawer A4", qty: 82, min: 30, unit: "pcs" },
+    { id: 3, name: "60/40 Rosin Core Solder (0.8mm)", bin: "Bench 2 Rack", qty: 2, min: 3, unit: "spools" },
+    { id: 4, name: "Kapton Polyimide Tape (10mm)", bin: "Cabinet C1", qty: 5, min: 2, unit: "rolls" },
+    { id: 5, name: "0.1µF Ceramic Capacitors", bin: "Drawer B2", qty: 110, min: 40, unit: "pcs" },
+    { id: 6, name: "Male-to-Male Jumper Wires", bin: "Bin D3", qty: 0, min: 20, unit: "pcs" },
+    { id: 7, name: "Heat Shrink Tubing Assortment", bin: "Cabinet C2", qty: 9, min: 10, unit: "packs" }
+  ];
+
+  function readStorage(key, fallback) {
+    try { const value = localStorage.getItem(key); return value ? JSON.parse(value) : fallback; }
+    catch { return fallback; }
+  }
+  let items = readStorage("lab_items", structuredClone(DEFAULT_ITEMS));
+  let logs = readStorage("lab_logs", [{ text: "StockPulse dashboard initialized", time: "Just now", delta: 0 }]);
+  if (!Array.isArray(items)) items = structuredClone(DEFAULT_ITEMS);
+  if (!Array.isArray(logs)) logs = [];
+  let currentFilter = "all";
+  let lastUndoState = null;
+  let toastTimer = null;
+
+  function saveState() {
+    try {
+      localStorage.setItem("lab_items", JSON.stringify(items));
+      localStorage.setItem("lab_logs", JSON.stringify(logs));
+    } catch (error) { console.warn("Could not save inventory in browser storage.", error); }
+  }
+  function timeNow() {
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  function setFilter(filter) {
+    currentFilter = filter;
+    document.getElementById("btnAll").classList.toggle("selected", filter === "all");
+    document.getElementById("btnLow").classList.toggle("selected", filter === "low");
+    render();
+  }
+  function adjustStock(id, delta) {
+    const item = items.find(entry => entry.id === id);
+    if (!item) return;
+    const actualDelta = item.qty + delta < 0 ? -item.qty : delta;
+    if (actualDelta === 0) return;
+    lastUndoState = { id, prevQty: item.qty };
+    item.qty += actualDelta;
+    const label = actualDelta < 0 ? `Used ${Math.abs(actualDelta)}` : `Restocked +${actualDelta}`;
+    logs.unshift({ text: `${label} ${item.unit} of ${item.name}`, time: timeNow(), delta: actualDelta });
+    logs = logs.slice(0, 100);
+    saveState(); render();
+    showToast(`${label} · ${item.name}`);
+  }
+  function undoLastAction() {
+    if (!lastUndoState) return;
+    const item = items.find(entry => entry.id === lastUndoState.id);
+    if (item) {
+      item.qty = lastUndoState.prevQty;
+      logs.unshift({ text: `Reverted last change on ${item.name}`, time: timeNow(), delta: 0 });
+      logs = logs.slice(0, 100);
+      lastUndoState = null;
+      saveState(); render();
+    }
+    document.getElementById("toast").classList.add("hidden");
+  }
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    document.getElementById("toastMsg").textContent = message;
+    toast.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add("hidden"), 5000);
+  }
+  function toggleModal(show) {
+    const modal = document.getElementById("addModal");
+    modal.classList.toggle("hidden", !show);
+    if (show) setTimeout(() => document.getElementById("newName").focus(), 50);
+  }
+  function addNewItem(event) {
+    event.preventDefault();
+    const name = document.getElementById("newName").value.trim();
+    const bin = document.getElementById("newBin").value.trim();
+    const unit = document.getElementById("newUnit").value.trim();
+    const qty = Number.parseInt(document.getElementById("newQty").value, 10);
+    const min = Number.parseInt(document.getElementById("newMin").value, 10);
+    if (!name || !bin || !unit || !Number.isFinite(qty) || !Number.isFinite(min) || qty < 0 || min < 1) return;
+    items.unshift({ id: Date.now(), name, bin, qty, min, unit });
+    logs.unshift({ text: `Added component: ${name} (${qty} ${unit})`, time: timeNow(), delta: qty });
+    logs = logs.slice(0, 100);
+    document.getElementById("addForm").reset();
+    document.getElementById("newUnit").value = "pcs";
+    document.getElementById("newQty").value = "50";
+    document.getElementById("newMin").value = "15";
+    toggleModal(false); saveState(); render();
+    showToast(`Added ${name}`);
+  }
+  function resetDemoData() {
+    if (!confirm("Reset the inventory to the original demo items? This replaces the saved items and activity log in this browser.")) return;
+    items = structuredClone(DEFAULT_ITEMS);
+    logs = [{ text: "Demo inventory reset to default state", time: "Just now", delta: 0 }];
+    lastUndoState = null; saveState(); render();
+  }
+  function safeText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[character]));
+  }
+  function render() {
+    const search = document.getElementById("searchInput").value.trim().toLowerCase();
+    const lowItems = items.filter(item => item.qty <= item.min);
+    const healthy = items.filter(item => item.qty > item.min).length;
+    const health = items.length ? Math.round(healthy / items.length * 100) : 100;
+
+    document.getElementById("statTotal").textContent = items.length;
+    document.getElementById("statLow").textContent = lowItems.length;
+    document.getElementById("statLogs").textContent = logs.length;
+    document.getElementById("statHealth").textContent = `${health}%`;
+    document.getElementById("healthLabel").textContent = `${health}% of items above threshold`;
+    document.getElementById("healthBar").style.width = `${health}%`;
+    document.getElementById("todayLabel").textContent = "📅 " + new Date().toLocaleDateString([], { weekday:"short", month:"short", day:"numeric" });
+
+    const banner = document.getElementById("alertBanner");
+    if (lowItems.length) {
+      banner.style.display = "flex";
+      document.getElementById("alertTitle").textContent = `${lowItems.length} component${lowItems.length === 1 ? "" : "s"} need restocking`;
+      document.getElementById("alertSubtitle").textContent = lowItems.map(item => `${item.name} (${item.qty} left)`).join(" · ");
+    } else {
+      banner.style.display = "none";
+    }
+
+    const filtered = items.filter(item => {
+      const matches = item.name.toLowerCase().includes(search) || item.bin.toLowerCase().includes(search);
+      return matches && (currentFilter === "all" || item.qty <= item.min);
+    });
+    const tbody = document.getElementById("inventoryBody");
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty">No matching components found. Try another search.</td></tr>`;
+    } else {
+      tbody.innerHTML = filtered.map(item => {
+        const isOut = item.qty === 0;
+        const isLow = item.qty > 0 && item.qty <= item.min;
+        const status = isOut ? `<span class="status out">Out of stock</span>` :
+          isLow ? `<span class="status low">Low stock</span>` : `<span class="status ok">In stock</span>`;
+        return `<tr>
+          <td><div class="item-name">${safeText(item.name)}</div><div class="item-bin">⌖ ${safeText(item.bin)}</div></td>
+          <td><div class="qty">${item.qty} <small>${safeText(item.unit)}</small></div><div class="item-bin">Min. ${item.min}</div></td>
+          <td>${status}</td>
+          <td><div class="actions"><button class="icon-btn" title="Use 1 ${safeText(item.unit)}" aria-label="Use one" onclick="adjustStock(${item.id},-1)" ${item.qty===0?"disabled":""}>−</button><button class="icon-btn" title="Restock 1 ${safeText(item.unit)}" aria-label="Add one" onclick="adjustStock(${item.id},1)">+</button></div></td>
+        </tr>`;
+      }).join("");
+    }
+
+    const feed = document.getElementById("activityFeed");
+    feed.innerHTML = logs.length ? logs.slice(0, 30).map(log => {
+      const positive = log.delta > 0, negative = log.delta < 0;
+      const icon = positive ? "↗" : negative ? "↘" : "•";
+      const tag = positive ? `+${log.delta}` : negative ? `${log.delta}` : "INFO";
+      return `<div class="activity"><div class="activity-icon">${icon}</div><div style="min-width:0;flex:1"><div class="activity-text">${safeText(log.text)}</div><div class="activity-time">${safeText(log.time || "")}</div></div><span class="activity-tag ${positive?"plus":negative?"minus":""}">${tag}</span></div>`;
+    }).join("") : `<div class="empty">No activity recorded yet.</div>`;
+
+    const bars = document.getElementById("stockBars");
+    const topItems = [...items].sort((a,b) => b.qty-a.qty).slice(0,5);
+    const maxQty = Math.max(1, ...topItems.map(item => item.qty));
+    bars.innerHTML = topItems.length ? topItems.map(item => `<div class="bar-row"><span title="${safeText(item.name)}">${safeText(item.name.length>15?item.name.slice(0,14)+"…":item.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,item.qty/maxQty*100)}%"></div></div><span class="bar-count">${item.qty}</span></div>`).join("") : `<div class="empty">Add components to see stock levels.</div>`;
+
+    const priorities = document.getElementById("priorityList");
+    const urgent = [...lowItems].sort((a,b) => (a.qty-a.min)-(b.qty-b.min)).slice(0,5);
+    priorities.innerHTML = urgent.length ? urgent.map(item => {
+      const deficit = Math.max(0, item.min-item.qty);
+      return `<div class="bar-row"><span title="${safeText(item.name)}">${safeText(item.name.length>15?item.name.slice(0,14)+"…":item.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(5,Math.min(100,(deficit/Math.max(1,item.min))*100))}%;background:linear-gradient(90deg,#c58a34,#f5b84b)"></div></div><span class="bar-count">${deficit}</span></div>`;
+    }).join("") : `<div class="empty">All components are above their alert threshold. Great!</div>`;
+  }
+
+  // Make sidebar navigation reliably scroll to each dashboard section.
+  document.querySelectorAll(".nav a[href^=\"#\"]").forEach(link => {
+    link.addEventListener("click", event => {
+      event.preventDefault();
+      const target = document.querySelector(link.getAttribute("href"));
+      if (!target) return;
+      if (link.getAttribute("href") === "#alerts") setFilter("low");
+      document.querySelectorAll(".nav a").forEach(item => item.classList.remove("active"));
+      link.classList.add("active");
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+
+  function openRecordList() {
+    const modal = document.getElementById("recordsModal");
+    modal.classList.remove("hidden");
+    document.getElementById("recordSearch").value = "";
+    renderRecordList();
+    setTimeout(() => document.getElementById("recordSearch").focus(), 40);
+  }
+  function closeRecordList() { document.getElementById("recordsModal").classList.add("hidden"); }
+  function renderRecordList() {
+    const query = document.getElementById("recordSearch").value.trim().toLowerCase();
+    const matching = logs.filter(log => String(log.text || "").toLowerCase().includes(query) || String(log.time || "").toLowerCase().includes(query));
+    document.getElementById("recordCount").textContent = `${matching.length} RECORD${matching.length === 1 ? "" : "S"}`;
+    const body = document.getElementById("recordsBody");
+    if (!matching.length) {
+      body.innerHTML = `<tr><td colspan="3" class="records-empty">No records match your search.</td></tr>`;
+      return;
+    }
+    body.innerHTML = matching.map(log => {
+      const change = Number(log.delta || 0);
+      const label = change > 0 ? `+${change}` : change < 0 ? `${change}` : "INFO";
+      return `<tr><td>${safeText(log.text || "Inventory update")}</td><td>${safeText(log.time || "")}</td><td><span class="record-badge">${label}</span></td></tr>`;
+    }).join("");
+  }
+
+  document.addEventListener("keydown", event => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault(); document.getElementById("searchInput").focus();
+    }
+    if (event.key === "Escape") { toggleModal(false); closeRecordList(); }
+  });
+  render();
+</script>
+</body>
+</html>
